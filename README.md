@@ -1,1 +1,2 @@
-# IA_Algorithms
+# TP's AI
+Algoritmos e Machine Learning

@@ -1,17 +1,49 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.model_selection import train_test_split
 
 # laod data
 file_path = 'C:\\Users\\diogo\\OneDrive - Instituto Politécnico do Cávado e do Ave\\Desktop\\ML_TP\\DataSet.xlsx'
 data = pd.read_excel(file_path)
 
 print(data.shape)
+print(data.head(5))
 
-# Removed because it is a index column
+# Removed because it is a id column
 data = data.drop(['Unnamed: 0'], axis=1)
+print(data.shape)
 
-correlation_matrix = data.corr()
+# # split data into X and Y
+# X = data.drop(['Abandono'], axis = 1)  # Input_set  
+# Y = data['Abandono'] # Output
+
+# # split data into train and test sets
+# test_size = 0.2
+# X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = test_size, shuffle = True)
+
+# print(X_train.shape, X_test.shape, Y_train.shape, Y_test.shape)
+
+
+class_0 = data[data['Abandono'] == 0]
+class_1 = data[data['Abandono'] == 1]
+
+class_0_sample = class_0.sample(600, random_state=42)  
+class_1_sample = class_1.sample(600, random_state=42)  
+
+data_balanced = pd.concat([class_0_sample, class_1_sample])
+print(data_balanced.shape)
+
+data_balanced = data_balanced.sample(frac=1, random_state=42).reset_index(drop=True)
+
+X_balanced = data_balanced.drop('Abandono', axis=1)
+y_balanced = data_balanced['Abandono']
+
+
+X_train, X_test, y_train, y_test = train_test_split(X_balanced, y_balanced, test_size=0.2, random_state=42)
+print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
+
+correlation_matrix = data_balanced.corr()
 
 # And then use seaborn's heatmap to visualize it
 plt.figure(figsize=(10,8))
@@ -20,185 +52,166 @@ plt.title('Matriz de Correlação')
 plt.show()
 
 
+from sklearn.metrics import confusion_matrix
 
-from sklearn.utils import resample
-from sklearn.model_selection import train_test_split
-
-# Separe os dados em duas classes
-data_class_0 = data[data['Abandono'] == 0]
-data_class_1 = data[data['Abandono'] == 1]
-
-# Faça o undersampling da classe majoritária
-data_class_0_under = resample(data_class_0, 
-                              replace=False, 
-                              n_samples=len(data_class_1), 
-                              random_state=42)
-
-# Combine as classes novamente
-data_balanced = pd.concat([data_class_0_under, data_class_1])
-
-# Agora dividimos em conjuntos de treino e teste
-X = data_balanced.drop('Abandono', axis=1)
-Y = data_balanced['Abandono']
-
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=42, shuffle = True, stratify=Y)
-
-
-# # split data into X and Y
-# X = data.drop(['Abandono'], axis = 1)  # Input_set  
-# Y = data['Abandono'] # Output
-
-# # split data into train and test sets
-# test_size = 0.3
-# X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = test_size, shuffle = True)
-
-print(X_train.shape, X_test.shape, Y_train.shape, Y_test.shape)
-
+def plot_confusion_matrix(y_true, y_pred, accuracy,precision,recall,f1, title='Confusion Matrix'):
+    matrix = confusion_matrix(y_true, y_pred)
+    plt.figure(figsize=(6, 6))
+    sns.heatmap(matrix, annot=True, fmt="d", linewidths=.5, cmap="Blues")
+    plt.title(title)
+    plt.ylabel('Actual')
+    plt.xlabel('Predict')
+    
+    metrics_string = (f'Accuracy: {accuracy:.4f} | '
+                      f'Precision: {precision:.4f} | '
+                      f'Recall: {recall:.4f} | '
+                      f'F1-Score: {f1:.4f}')
+    
+    # Define a posição do texto, por exemplo, x será 0.5 (centro do gráfico)
+    # e y será -0.1 (abaixo do eixo x do gráfico).
+    # Ajuste esses valores conforme necessário para a posição correta.
+    plt.text(0.5, -0.1, metrics_string, ha='center', va='top', transform=plt.gca().transAxes)
+    
+    plt.show()
 
 
 #### Decision Tree Classifier
 from sklearn.tree import DecisionTreeClassifier
-
-dtc= DecisionTreeClassifier()
-dtc.fit(X_train.values, Y_train)
-dtc_predictions= dtc.predict(X_test.values)
-
-# Example
-dtc_predictions_example = dtc.predict([[1,	1,	1,	1,	1,	1,	0,	26,	0,	118,	1,	0,	1,	1,	0,	0,	0,	0,	0,	0,	1,	1,	0,	0,	0,	1,	1,	1,	0,	0,	0,	0], 
-                                       [0,	11,	1,	1,	0,	1,	0,	28,	0,	0,	1,	0,	0,	0,	0,	0,	0,	0,	1,	1,	1,	0,	0,	1,	0,	0,	1,	0,	1,	0,	0,	0]])
-print(dtc_predictions_example)
-# 0-Não Abandona; 1-Abandona;
-
-
-
-# Accuracy
-from sklearn.metrics import accuracy_score
-
-score_DTC=accuracy_score(Y_test, dtc_predictions)
-print("Accuracy of Decision Tree: %.2f%%" % (score_DTC * 100.0)) # This score is always different since the division between train and test is always random
-# 80% - 85% Accuracy
-
-
-
-#### XGBoost Classifier
-from xgboost import XGBClassifier
-
-xgb = XGBClassifier()
-xgb.fit(X_train.values, Y_train)
-xgb_predictions = xgb.predict(X_test.values)
-score_XGB = accuracy_score(Y_test, xgb_predictions)
-print("Accuracy of XGBoost: %.2f%%" % (score_XGB * 100.0)) # This score is always different since the division between train and test is always random
-
-
-
-#### Logistic Regression Classifier
 from sklearn.linear_model import LogisticRegression
-
-lrc = LogisticRegression(max_iter = 10000)
-lrc.fit(X_train.values, Y_train)
-lrc_predictions = lrc.predict(X_test.values)
-score_LRC = accuracy_score(Y_test, lrc_predictions)
-print("Accuracy of Logistic Regression: %.2f%%" % (score_LRC * 100.0)) # This score is always different since the division between train and test is always random
-
-
-
-#### Random Forest Classifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
+from sklearn.model_selection import cross_validate
 
-rfc = RandomForestClassifier()
-rfc.fit(X_train.values, Y_train)
-rfc_predictions = rfc.predict(X_test.values)
-score_RFC = accuracy_score(Y_test, rfc_predictions)
-print("Accuracy of Random Forest: %.2f%%" % (score_RFC * 100.0)) # This score is always different since the division between train and test is always random
+rfc = RandomForestClassifier( min_samples_split=2, min_samples_leaf=2, max_depth=10)
+rfc.fit(X_train, y_train)
+predictions = rfc.predict(X_test)
+print(classification_report(y_test, predictions))
+accuracy = accuracy_score(y_test, predictions)
+precision = precision_score(y_test, predictions, average='binary')
+recall = recall_score(y_test, predictions, average='binary')
+f1 = f1_score(y_test, predictions, average='binary')
 
+cv_results = cross_validate(rfc, X_train, y_train, cv=5, return_train_score=True, scoring='accuracy')
+cv_train_scores = cv_results['train_score']
+cv_test_scores = cv_results['test_score']
+print("Train scores: ", cv_train_scores)
+print("Test scores: ", cv_test_scores)
 
+print(f'Accuracy: {accuracy}')
+print(f'Precision: {precision}')
+print(f'Recall: {recall}')
+print(f'F1-Score: {f1}')
 
-from sklearn.metrics import confusion_matrix
-
-        ####### Confusion Matrix  ########
-# Logistic Regression
-cm = confusion_matrix(Y_test, lrc_predictions)
-plt.figure(figsize=(8, 6))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-plt.title('Confusion Matrix')
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.show()
-
-
-# XGBoost
-cm = confusion_matrix(Y_test, xgb_predictions)
-plt.figure(figsize=(8, 6))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-plt.title('Confusion Matrix')
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.show()
+plot_confusion_matrix(y_test, predictions,accuracy,precision,recall,f1, title='Confusion Matrix - Random Forest')
 
 
-# Random Forest
-cm = confusion_matrix(Y_test, rfc_predictions)
-plt.figure(figsize=(8, 6))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-plt.title('Confusion Matrix')
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.show()
+dtc = DecisionTreeClassifier(splitter='best', min_samples_split=7, min_samples_leaf=3, max_depth=5, criterion='gini')
+dtc.fit(X_train, y_train)
+predictions = dtc.predict(X_test)
+print(classification_report(y_test, predictions))
+accuracy = accuracy_score(y_test, predictions)
+precision = precision_score(y_test, predictions, average='binary')
+recall = recall_score(y_test, predictions, average='binary')
+f1 = f1_score(y_test, predictions, average='binary')
 
+cv_results = cross_validate(dtc, X_train, y_train, cv=5, return_train_score=True, scoring='accuracy')
+cv_train_scores = cv_results['train_score']
+cv_test_scores = cv_results['test_score']
+print("Train scores: ", cv_train_scores)
+print("Test scores: ", cv_test_scores)
 
-# Decision Tree
-cm = confusion_matrix(Y_test, dtc_predictions)
-plt.figure(figsize=(8, 6))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-plt.title('Confusion Matrix')
-plt.xlabel('Predicted')
-plt.ylabel('Actual')
-plt.show()
+print(f'Accuracy: {accuracy}')
+print(f'Precision: {precision}')
+print(f'Recall: {recall}')
+print(f'F1-Score: {f1}')
 
+plot_confusion_matrix(y_test, predictions,accuracy,precision,recall,f1, title='Confusion Matrix - Decision Tree')
 
+lrc = LogisticRegression()
+lrc.fit(X_train, y_train)
+predictions = lrc.predict(X_test)
+print(classification_report(y_test, predictions))
+accuracy = accuracy_score(y_test, predictions)
+precision = precision_score(y_test, predictions, average='binary')
+recall = recall_score(y_test, predictions, average='binary')
+f1 = f1_score(y_test, predictions, average='binary')
 
-from sklearn.metrics import precision_score, recall_score, f1_score
+cv_results = cross_validate(lrc, X_train, y_train, cv=5, return_train_score=True, scoring='accuracy')
+cv_train_scores = cv_results['train_score']
+cv_test_scores = cv_results['test_score']
+print("Train scores: ", cv_train_scores)
+print("Test scores: ", cv_test_scores)
 
-# Calcular precisão, recall e F1-score para os 4 modelos
-print('\n\nLOGISTIC REGRESSION')
-lrc_precision = precision_score(Y_test, lrc_predictions, average='binary')
-lrc_recall = recall_score(Y_test, lrc_predictions, average='binary')
-lrc_f1 = f1_score(Y_test, lrc_predictions, average='binary')
+print(f'Accuracy: {accuracy}')
+print(f'Precision: {precision}')
+print(f'Recall: {recall}')
+print(f'F1-Score: {f1}')
 
-print(f'Precision: {lrc_precision:.2f}')
-print(f'Recall: {lrc_recall:.2f}')
-print(f'F1 Score: {lrc_f1:.2f}')
-
-
-
-print('\n\nDECISION TREE CLASSIFIER')
-dtc_precision = precision_score(Y_test, dtc_predictions, average='binary')
-dtc_recall = recall_score(Y_test, dtc_predictions, average='binary')
-dtc_f1 = f1_score(Y_test, dtc_predictions, average='binary')
-
-print(f'Precision: {dtc_precision:.2f}')
-print(f'Recall: {dtc_recall:.2f}')
-print(f'F1 Score: {dtc_f1:.2f}')
+plot_confusion_matrix(y_test, predictions,accuracy,precision,recall,f1, title='Confusion Matrix - Logistic Regression')
 
 
 
-print('\n\nRANDOM FOREST CLASSIFIER')
-rfc_precision = precision_score(Y_test, rfc_predictions, average='binary')
-rfc_recall = recall_score(Y_test, rfc_predictions, average='binary')
-rfc_f1 = f1_score(Y_test, rfc_predictions, average='binary')
+from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
+from scipy.stats import randint
+from scipy.stats import uniform
 
-print(f'Precision: {rfc_precision:.2f}')
-print(f'Recall: {rfc_recall:.2f}')
-print(f'F1 Score: {rfc_f1:.2f}')
+from sklearn.model_selection import GridSearchCV
+
+# # Defina os hiperparâmetros a serem testados para o DecisionTreeClassifier
+# param_grid = {
+#     'criterion': ['gini', 'entropy'],  # Critério para medir a qualidade da divisão
+#     'splitter': ['best', 'random'],    # Estratégia de divisão
+#     'max_depth': [None, 5, 10, 20],   # Profundidade máxima da árvore
+#     'min_samples_split': [2, 3, 4, 5, 6, 7, 8, 9],  # Número mínimo de amostras para dividir um nó interno
+#     'min_samples_leaf': [1, 2, 3, 4]     # Número mínimo de amostras por folha
+# }
+
+# # Crie o objeto GridSearchCV para o DecisionTreeClassifier
+# grid_search_dt = RandomizedSearchCV(estimator=DecisionTreeClassifier(), param_distributions=param_grid, cv=5)
+
+# # Realize a busca em grade
+# grid_search_dt.fit(X_train, y_train)
+
+# # Imprima os melhores hiperparâmetros encontrados
+# print("Melhores hiperparâmetros para o modelo DecisionTreeClassifier:")
+# print(grid_search_dt.best_params_)
 
 
 
-print('\n\nXGBOOST CLASSIFIER')
-xgb_precision = precision_score(Y_test, xgb_predictions, average='binary')
-xgb_recall = recall_score(Y_test, xgb_predictions, average='binary')
-xgb_f1 = f1_score(Y_test, xgb_predictions, average='binary')
+# # Defina os hiperparâmetros a serem testados para a Regressão Logística
+# param_grid = {
+#     'C': [0.1, 1, 10],  # Parâmetro de regularização
+#     'penalty': ['l1', 'l2'],  # Tipo de penalização (L1 ou L2)
+#     'solver': ['liblinear', 'saga'],  # Algoritmo de otimização
+#     'max_iter': [100, 200, 300, 400, 500]  # Número máximo de iterações
+# }
 
-print(f'Precision: {xgb_precision:.2f}')
-print(f'Recall: {xgb_recall:.2f}')
-print(f'F1 Score: {xgb_f1:.2f}')
+# # Crie o objeto GridSearchCV para a Regressão Logística
+# grid_search_lr = RandomizedSearchCV(estimator=LogisticRegression(), param_distributions=param_grid, cv=5)
 
+# # Realize a busca em grade
+# grid_search_lr.fit(X_train, y_train)
+
+# # Imprima os melhores hiperparâmetros encontrados
+# print("Melhores hiperparâmetros para o modelo de Regressão Logística:")
+# print(grid_search_lr.best_params_)
+
+
+
+# # Definir os hiperparâmetros a serem testados
+# param_grid = {
+#     'n_estimators': [100, 200, 300, 400, 500],
+#     'max_depth': [None, 5, 10, 20],
+#     'min_samples_split': [2, 3, 4, 5, 6, 7, 8, 9],
+#     'min_samples_leaf': [1, 2, 3, 4]
+# }
+
+# # Criar o objeto GridSearchCV
+# grid_search_rf = RandomizedSearchCV(estimator=RandomForestClassifier(), param_distributions=param_grid, cv=5)
+
+# # Realizar a busca em grade
+# grid_search_rf.fit(X_train, y_train)
+
+# # Imprimir os melhores hiperparâmetros encontrados
+# print("Melhores hiperparâmetros para o modelo RandomForestClassifier:")
+# print(grid_search_rf.best_params_)

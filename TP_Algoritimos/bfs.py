@@ -1,20 +1,50 @@
 from collections import deque
 import pygame
-from pygame.locals import QUIT
-import time
 
 class Node:
-    def __init__(self, x, y, parent=None):
+    def __init__(self, x, y, direction=None, parent=None):
         self.x = x
         self.y = y
         self.parent = parent
+        self.direction = direction
 
 def is_valid(x, y, matrix):
     return 0 <= x < len(matrix) and 0 <= y < len(matrix) and matrix[x][y] != 1
 
-def calculate_cell_size(matrix_size, max_window_size):
-    max_cell_size = max_window_size // matrix_size
-    return min(max_cell_size, 10)
+# def visualize_path(matrix, path, visited):
+#     pygame.init()
+
+#     width, height = 800, 800
+#     matrix_size = len(matrix)
+#     cell_size = width // matrix_size
+
+#     screen = pygame.display.set_mode((width, height))
+#     pygame.display.set_caption("Pathfinding Visualization")
+
+#     while True:
+#         for event in pygame.event.get():
+#             if event.type == pygame.QUIT:
+#                 pygame.quit()
+#                 return
+
+#         screen.fill((255, 255, 255))
+
+#         for i in range(matrix_size):
+#             for j in range(matrix_size):
+#                 if matrix[i][j] == 1:  # Obstacle
+#                     pygame.draw.rect(screen, (0, 0, 0), (j * cell_size, i * cell_size, cell_size, cell_size))
+#                 elif matrix[i][j] == 'R':  # Start (Robot)
+#                     pygame.draw.rect(screen, (0, 255, 0), (j * cell_size, i * cell_size, cell_size, cell_size))
+#                 elif matrix[i][j] == 'P':  # Goal (Object)
+#                     pygame.draw.rect(screen, (0, 0, 255), (j * cell_size, i * cell_size, cell_size, cell_size))
+#                 elif (i, j) in path:  # Final path (green)
+#                     pygame.draw.rect(screen, (0, 255, 0), (j * cell_size, i * cell_size, cell_size, cell_size))
+#                 elif (i, j) in visited:  # Explored path (red)
+#                     pygame.draw.rect(screen, (255, 0, 0), (j * cell_size, i * cell_size, cell_size, cell_size))
+#                 else:
+#                     pygame.draw.rect(screen, (255, 255, 255), (j * cell_size, i * cell_size, cell_size, cell_size))
+
+#         pygame.display.flip()
 
 def bfs(matrix):
     start = None
@@ -29,100 +59,82 @@ def bfs(matrix):
     if start is None or goal is None:
         print("Start or goal not found in the matrix.")
         return
-
-    pygame.init()
-
-    cell_size = calculate_cell_size(len(matrix), 700)  # Adjust the cell size as needed
-    window_width = len(matrix) * cell_size
-    window_height = len(matrix) * cell_size
-    matrix_size = len(matrix)
     
-    screen = pygame.display.set_mode((window_width, window_height))
-    pygame.display.set_caption("Pathfinding Visualization")
+    # pygame.init()
+
+    # width, height = 800, 800
+    # matrix_size = len(matrix)
+    # cell_size = width // matrix_size
     
+    # screen = pygame.display.set_mode((width, height))
+    # pygame.display.set_caption("Pathfinding Visualization")
+
     queue = deque([start])
     visited = set()
-    start_time = time.time()  # Record the start time
     path_found = False
+    total_cost = 0
+    last_direction = None
 
     while queue:
         current = queue.popleft()
         x, y = current.x, current.y
+        
+        # for event in pygame.event.get():
+        #     if event.type == pygame.QUIT:
+        #         pygame.quit()
+        #         if not path_found:  # Check if the path has not been found
+        #             print("No path found.")
+        #         return
 
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                if not path_found:  # Check if the path has not been found
-                    print("No path found.")
-                return
+        # screen.fill((255, 255, 255))
 
-        screen.fill((255, 255, 255))
+        # for i in range(matrix_size):
+        #     for j in range(matrix_size):
+        #         if matrix[i][j] == 1:  # Obstacle
+        #             pygame.draw.rect(screen, (0, 0, 0), (j * cell_size, i * cell_size, cell_size, cell_size))
+        #         elif matrix[i][j] == 'R':  # Start (Robot)
+        #             pygame.draw.rect(screen, (0, 255, 0), (j * cell_size, i * cell_size, cell_size, cell_size))
+        #         elif matrix[i][j] == 'P':  # Goal (Object)
+        #             pygame.draw.rect(screen, (0, 0, 255), (j * cell_size, i * cell_size, cell_size, cell_size))
+        #         elif (i, j) in visited:  # Explored path (red)
+        #             pygame.draw.rect(screen, (255, 0, 0), (j * cell_size, i * cell_size, cell_size, cell_size))
 
-        for i in range(matrix_size):
-            for j in range(matrix_size):
-                if matrix[i][j] == 1:  # Obstacle
-                    pygame.draw.rect(screen, (0, 0, 0), (j * cell_size, i * cell_size, cell_size, cell_size))
-                elif matrix[i][j] == 'R':  # Start (Robot)
-                    pygame.draw.rect(screen, (0, 255, 0), (j * cell_size, i * cell_size, cell_size, cell_size))
-                elif matrix[i][j] == 'P':  # Goal (Object)
-                    pygame.draw.rect(screen, (0, 0, 255), (j * cell_size, i * cell_size, cell_size, cell_size))
-                elif (i, j) in visited:  # Explored path (red)
-                    pygame.draw.rect(screen, (255, 0, 0), (j * cell_size, i * cell_size, cell_size, cell_size))
-
-        pygame.display.flip()
-
+        # pygame.display.flip()
+        
         if (x, y) == (goal.x, goal.y):
             path = []
+
             while current:
                 path.append((current.x, current.y))
+
+                total_cost += 1  # Count the step
+
+                if current.direction and current.direction != last_direction:
+                    total_cost += 1  # Add extra cost for rotation
+
+                last_direction = current.direction
                 current = current.parent
+
             path.reverse()
 
             if path:
-                for (i, j) in path:
-                    visited.add((i, j))
-
-                elapsed_time = time.time() - start_time
-                print(f"Path found in {elapsed_time:.6f} seconds.")
                 print(f"Path: {path}")
+                print(f"Total Cost: {total_cost}")
+                path_found = True
+                # visualize_path(matrix, path, visited)
 
-                path_found = True  # Set the flag to indicate path found
-
-                while True:
-                    for event in pygame.event.get():
-                        if event.type == QUIT:
-                            pygame.quit()
-                            return
-
-                    screen.fill((255, 255, 255))
-
-                    for i in range(matrix_size):
-                        for j in range(matrix_size):
-                            if matrix[i][j] == 1:  # Obstacle
-                                pygame.draw.rect(screen, (0, 0, 0), (j * cell_size, i * cell_size, cell_size, cell_size))
-                            elif matrix[i][j] == 'R':  # Start (Robot)
-                                pygame.draw.rect(screen, (0, 0, 255), (j * cell_size, i * cell_size, cell_size, cell_size))
-                            elif matrix[i][j] == 'P':  # Goal (Object)
-                                pygame.draw.rect(screen, (0, 0, 255), (j * cell_size, i * cell_size, cell_size, cell_size))
-                            elif (i, j) in path:  # Final path (green)
-                                pygame.draw.rect(screen, (0, 255, 0), (j * cell_size, i * cell_size, cell_size, cell_size))
-                            elif (i, j) in visited:  # Explored path (red)
-                                pygame.draw.rect(screen, (255, 0, 0), (j * cell_size, i * cell_size, cell_size, cell_size))
-
-                    pygame.display.flip()
-
-            pygame.quit()
-            return path
+            return path, total_cost
 
         if (x, y) not in visited:
             visited.add((x, y))
 
-            for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+            for dx, dy, direction in [(0, 1, 'right'), (0, -1, 'left'), (1, 0, 'down'), (-1, 0, 'up')]:
                 new_x, new_y = x + dx, y + dy
                 if is_valid(new_x, new_y, matrix):
-                    neighbor = Node(new_x, new_y, parent=current)
+                    neighbor = Node(new_x, new_y, direction, parent=current)
                     queue.append(neighbor)
 
-    print("No path found.")
-    pygame.quit()
-    return None
+    if not path_found:
+        print("No path found.")
+        # pygame.quit()
+    return None, None

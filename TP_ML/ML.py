@@ -3,14 +3,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 
-# laod data
+# carrerga o dataset
 file_path = 'C:\\Users\\diogo\\OneDrive - Instituto Politécnico do Cávado e do Ave\\Desktop\\ML_TP\\DataSet.xlsx'
 data = pd.read_excel(file_path)
 
 print(data.shape)
 print(data.head(5))
 
-# Removed because it is a id column
+# Remove a coluna Unnamed: 0 porque é um index
 data = data.drop(['Unnamed: 0'], axis=1)
 print(data.shape)
 
@@ -45,7 +45,7 @@ print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
 
 correlation_matrix = data_balanced.corr()
 
-# And then use seaborn's heatmap to visualize it
+# Matriz de correlação com heatmap
 plt.figure(figsize=(10,8))
 sns.heatmap(correlation_matrix, cmap='BrBG', fmt='.2f', linewidths=2, annot=True)
 plt.title('Matriz de Correlação')
